@@ -1,3 +1,7 @@
+2014-07-30 Rodrigo Setti <rodrigosetti@gmail.com>
+
+	* Parse request on demand (instead of waiting for the entire data)
+
 2014-07-25 Rodrigo Setti <rodrigosetti@gmail.com>
 
 	* Initial version.

@@ -1,5 +1,5 @@
 name               : messagepack-rpc
-version            : 0.1.0.0
+version            : 0.1.0.1
 synopsis           : Message Pack RPC over TCP
 description        : Message Pack RPC over TCP
 homepage           : http://github.com/rodrigosetti/messagepack-rpc

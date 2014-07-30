@@ -14,9 +14,10 @@ module Network.MessagePack ( Method
 import Control.Applicative
 import Control.Monad
 import Data.MessagePack
+import Data.Maybe
+import Data.Serialize.Get
 import Network.Simple.TCP
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map as M
 import qualified Data.Serialize as S
 import qualified Data.Text as T
@@ -44,21 +45,24 @@ runRPC methods host service =
     serve host service rpcServer
   where
     rpcServer (socket, _) =
-        do bs <- LBS.fromChunks <$> fetchData
-           send socket =<< LBS.toStrict <$> executeRPC methods bs
+        do reqMsg  <- getRequestMessage
+           respMsg <- either (return . errorResponse errorMsgId) (executeRPC methods) reqMsg
+           send socket $ S.encode respMsg
       where
-        chunkSize = 1024
-        fetchData = do maybeData <- recv socket chunkSize
-                       case maybeData of
-                        Nothing -> return []
-                        Just s  -> do let len = BS.length s
-                                      if len < chunkSize
-                                        then return [s]
-                                        else do rest <- fetchData
-                                                return $ s : rest
+        getRequestMessage =
+            do result <- go $ runGetPartial S.get
+               return $ case result of
+                            Fail err _ -> Left err
+                            Done r   _ -> Right r
+                            Partial  _ -> Left "unexpected end of RPC message"
+          where
+            go partial = do bs <- fromMaybe BS.empty <$> recv socket 1024
+                            case partial bs of
+                                Partial partial' -> go partial'
+                                x                -> return x
 
-executeRPC :: M.Map T.Text Method -> LBS.ByteString -> IO LBS.ByteString
-executeRPC methods input = 
+executeRPC :: M.Map T.Text Method -> Object -> IO Object
+executeRPC methods obj = 
    case getRPCData of
     Left err -> return $ errorResponse errorMsgId err
     Right (method, msgid, params) -> do result <- method params
@@ -67,7 +71,6 @@ executeRPC methods input =
    getRPCData =
     do let m .: k = maybe (Left $ "missing key: " ++ show k) Right $ M.lookup (ObjectString k) m
            getMethod ms name = maybe (Left $ "unsupported method: " ++ show name) Right $ M.lookup name ms
-       obj <- S.decodeLazy input
        case obj of
         (ObjectMap m) -> do ObjectInt type_ <- m .: "type"
                             when (type_ /= reqMessage) $ Left $ "invalid RPC type: " ++ show type_
@@ -80,16 +83,16 @@ executeRPC methods input =
                             return (method, msgid, params)
         _              -> Left "invalid msgpack RPC request"
 
-errorResponse :: MsgId -> String -> LBS.ByteString
+errorResponse :: MsgId -> String -> Object
 errorResponse msgid err = response msgid (ObjectString $ T.pack err) ObjectNil
 
-resultResponse :: MsgId -> Object -> LBS.ByteString
+resultResponse :: MsgId -> Object -> Object
 resultResponse msgid = response msgid ObjectNil
 
-response :: MsgId -> Object -> Object -> LBS.ByteString
+response :: MsgId -> Object -> Object -> Object
 response msgid errObj resObj =
-    S.encodeLazy $ ObjectMap $ M.fromList [ (ObjectString "type"  , ObjectInt resMessage)
-                                          , (ObjectString "msgid" , ObjectInt msgid)
-                                          , (ObjectString "error" , errObj)
-                                          , (ObjectString "result", resObj) ]
+    ObjectMap $ M.fromList [ (ObjectString "type"  , ObjectInt resMessage)
+                           , (ObjectString "msgid" , ObjectInt msgid)
+                           , (ObjectString "error" , errObj)
+                           , (ObjectString "result", resObj) ]
 
