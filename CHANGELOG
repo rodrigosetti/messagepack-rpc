@@ -1,5 +1,9 @@
 2014-11-17 Rodrigo Setti <rodrigosetti@gmail.com>
 
+	* Ops: this dependency specification doesn't work
+
+2014-11-17 Rodrigo Setti <rodrigosetti@gmail.com>
+
 	* Fix the broken API due to the fact that messagepack is now using Int64
 
 2014-07-30 Rodrigo Setti <rodrigosetti@gmail.com>
