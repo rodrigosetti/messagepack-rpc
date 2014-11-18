@@ -13,6 +13,7 @@ module Network.MessagePack ( Method
 
 import Control.Applicative
 import Control.Monad
+import Data.Int
 import Data.MessagePack
 import Data.Maybe
 import Data.Serialize.Get
@@ -22,8 +23,8 @@ import qualified Data.Map as M
 import qualified Data.Serialize as S
 import qualified Data.Text as T
 
-type MsgId   = Int
-type MsgType = Int
+type MsgId   = Int64
+type MsgType = Int64
 
 reqMessage :: MsgType
 reqMessage = 0
@@ -31,7 +32,7 @@ reqMessage = 0
 resMessage :: MsgType
 resMessage = 1
 
-errorMsgId :: Int
+errorMsgId :: Int64
 errorMsgId = 0
 
 -- | The type of a message pack RPC method. It gets an Object as a parameter, and
