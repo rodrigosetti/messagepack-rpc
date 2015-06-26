@@ -1,3 +1,7 @@
+2015-06-26 Rodrigo Setti <rodrigosetti@gmail.com>
+
+	* Fix to work with latest "messagepack", remove dependency on "text".
+
 2014-11-17 Rodrigo Setti <rodrigosetti@gmail.com>
 
 	* Ops: this dependency specification doesn't work

@@ -18,10 +18,10 @@ import Data.MessagePack
 import Data.Maybe
 import Data.Serialize.Get
 import Network.Simple.TCP
+import Data.ByteString.Char8 (pack, unpack)
 import qualified Data.ByteString as BS
 import qualified Data.Map as M
 import qualified Data.Serialize as S
-import qualified Data.Text as T
 
 type MsgId   = Int64
 type MsgType = Int64
@@ -41,7 +41,7 @@ type Method = Object -> IO (Either String Object)
 
 -- | Start the RPC server binding the socket using the given preferences, and
 --   using the RPC methods defined in the map of method name -> Method.
-runRPC :: M.Map T.Text Method -> HostPreference -> ServiceName -> IO ()
+runRPC :: M.Map String Method -> HostPreference -> ServiceName -> IO ()
 runRPC methods host service = 
     serve host service rpcServer
   where
@@ -62,7 +62,7 @@ runRPC methods host service =
                                 Partial partial' -> go partial'
                                 x                -> return x
 
-executeRPC :: M.Map T.Text Method -> Object -> IO Object
+executeRPC :: M.Map String Method -> Object -> IO Object
 executeRPC methods obj = 
    case getRPCData of
     Left err -> return $ errorResponse errorMsgId err
@@ -77,7 +77,7 @@ executeRPC methods obj =
                             when (type_ /= reqMessage) $ Left $ "invalid RPC type: " ++ show type_
 
                             ObjectString methodName <- m .: "method"
-                            method <- getMethod methods methodName
+                            method <- getMethod methods $ unpack methodName
 
                             ObjectInt msgid <- m .: "msgid"
                             params          <- m .: "params"
@@ -85,7 +85,7 @@ executeRPC methods obj =
         _              -> Left "invalid msgpack RPC request"
 
 errorResponse :: MsgId -> String -> Object
-errorResponse msgid err = response msgid (ObjectString $ T.pack err) ObjectNil
+errorResponse msgid err = response msgid (ObjectString $ pack err) ObjectNil
 
 resultResponse :: MsgId -> Object -> Object
 resultResponse msgid = response msgid ObjectNil
