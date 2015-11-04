@@ -1,3 +1,8 @@
+2015-11-03 Rodrigo Setti <rodrigosetti@gmail.com>
+
+	* Update version to match "messagepack" - from now on they will remain
+	tied
+
 2015-06-26 Rodrigo Setti <rodrigosetti@gmail.com>
 
 	* Fix to work with latest "messagepack", remove dependency on "text".
